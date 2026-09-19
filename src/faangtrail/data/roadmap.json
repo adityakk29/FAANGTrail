@@ -4,13 +4,17 @@
     "title": "Two Sum",
     "topic": "arrays",
     "difficulty": "easy",
-    "prompt": "Return the indices of two values that add up to the target."
+    "prompt": "Return the indices of two values that add up to the target.",
+    "starter": "def solve(nums, target):\n    # Return the indices of the two matching values.\n    pass\n",
+    "tests": "assert solve([2, 7, 11, 15], 9) == [0, 1]\nassert solve([3, 2, 4], 6) == [1, 2]\nprint('All tests passed.')"
   },
   {
     "id": "valid-parentheses",
     "title": "Valid Parentheses",
     "topic": "stacks",
     "difficulty": "easy",
-    "prompt": "Determine whether every opening bracket is closed in the correct order."
+    "prompt": "Determine whether every opening bracket is closed in the correct order.",
+    "starter": "def solve(s):\n    # Return True when all brackets are correctly matched.\n    pass\n",
+    "tests": "assert solve('()[]{}') is True\nassert solve('(]') is False\nassert solve('{[]}') is True\nprint('All tests passed.')"
   }
 ]

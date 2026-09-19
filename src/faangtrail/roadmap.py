@@ -12,6 +12,8 @@ class Challenge:
     topic: str
     difficulty: str
     prompt: str
+    starter: str
+    tests: str
 
 
 def load_challenges() -> list[Challenge]:

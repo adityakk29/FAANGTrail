@@ -18,6 +18,7 @@ build = ["pyinstaller>=6.0"]
 
 [project.scripts]
 faangtrail = "faangtrail.cli:main"
+faangtrail-gui = "faangtrail.gui:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -59,7 +59,7 @@ jobs:
       - name: Build Linux archive
         if: runner.os == 'Linux'
         run: |
-          python -m PyInstaller --onefile --name FAANGTrail --paths src \
+          python -m PyInstaller --onefile --windowed --name FAANGTrail --paths src \
             --add-data "src/faangtrail/data:faangtrail/data" --clean faangtrail_entry.py
           tar -czf "dist/${{ matrix.artifact }}" -C dist FAANGTrail
 
