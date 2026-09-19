@@ -1,6 +1,6 @@
 # FAANGTrail
 
-FAANGTrail is a local-first programming practice app built on the FAANGTrail roadmap. The first milestone is a Python CLI that discovers roadmap challenges and executes submitted Python code with the user's local interpreter.
+FAANGTrail is a local-first programming practice app built on the FAANGTrail roadmap. It provides a desktop GUI where you can browse challenges, write Python solutions, and run them with your local interpreter. A CLI is also included for automation.
 
 ## Quick start
 
@@ -11,12 +11,13 @@ python -m venv .venv
 # Windows PowerShell: .venv\\Scripts\\Activate.ps1
 # macOS/Linux: source .venv/bin/activate
 python -m pip install -e '.[dev]'
+faangtrail-gui
 faangtrail list
 faangtrail run two-sum --code "print('skeleton ready')"
 python -m pytest
 ```
 
-The CLI never sends source code to a remote service. Challenge metadata is kept in `src/faangtrail/data/roadmap.json`; future milestones can add the interactive desktop UI without changing the runner contract.
+The GUI lets you select a roadmap challenge, edit its starter function, and click **Run tests**. Each challenge runs its bundled assertions in the local Python interpreter and displays stdout, tracebacks, pass/fail status, and timeouts. The GUI and CLI never send source code to a remote service. Challenge metadata and tests are kept in `src/faangtrail/data/roadmap.json`. The desktop app uses Tkinter from the Python standard library, so no web server or account is required.
 
 ## Packaging
 
@@ -30,7 +31,7 @@ python -m pip install -e '.[build]'
 ./scripts/build_macos.sh
 ```
 
-The Windows script produces `dist/FAANGTrail.exe`. The macOS script creates `dist/FAANGTrail-macos.zip`.
+The Windows script produces `dist/FAANGTrail.exe`. The macOS script creates `dist/FAANGTrail-macos.zip`. Both launch the desktop GUI.
 
 Pushing a version tag such as `v0.1.0` runs the GitHub Actions release workflow. It builds native Windows, macOS, and Linux packages and attaches them to the generated GitHub Release. Pull requests and pushes to `main` run the same builds as validation without publishing a release.
 

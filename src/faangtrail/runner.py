@@ -13,10 +13,11 @@ class RunResult:
     timed_out: bool = False
 
 
-def run_python(source: str, timeout_seconds: int = 5) -> RunResult:
+def run_python(source: str, timeout_seconds: int = 5, test_source: str | None = None) -> RunResult:
+    program = source if test_source is None else f"{source}\n\n{test_source}"
     try:
         completed = subprocess.run(
-            [sys.executable, "-I", "-c", source],
+            [sys.executable, "-I", "-c", program],
             capture_output=True,
             text=True,
             timeout=timeout_seconds,

@@ -14,3 +14,9 @@ def test_run_python_reports_timeout() -> None:
 
     assert result.timed_out is True
     assert result.returncode == 124
+
+
+def test_run_python_executes_local_tests() -> None:
+    result = run_python("def solve(value):\n    return value * 2", test_source="assert solve(3) == 6")
+
+    assert result.returncode == 0
