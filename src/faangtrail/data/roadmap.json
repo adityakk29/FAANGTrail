@@ -1,0 +1,16 @@
+[
+  {
+    "id": "two-sum",
+    "title": "Two Sum",
+    "topic": "arrays",
+    "difficulty": "easy",
+    "prompt": "Return the indices of two values that add up to the target."
+  },
+  {
+    "id": "valid-parentheses",
+    "title": "Valid Parentheses",
+    "topic": "stacks",
+    "difficulty": "easy",
+    "prompt": "Determine whether every opening bracket is closed in the correct order."
+  }
+]
