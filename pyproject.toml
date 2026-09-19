@@ -24,7 +24,7 @@ faangtrail-gui = "faangtrail.gui:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-faangtrail = ["data/*.json"]
+faangtrail = ["data/*.json", "data/problems/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
