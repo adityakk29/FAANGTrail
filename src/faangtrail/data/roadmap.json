@@ -5,6 +5,9 @@
     "topic": "arrays",
     "difficulty": "easy",
     "prompt": "Return the indices of two values that add up to the target.",
+    "description": "Given an array of integers and a target value, find the two distinct positions whose values add up to the target. Return the positions in any order.",
+    "examples": "Input: nums = [2, 7, 11, 15], target = 9\nOutput: [0, 1]\n\nInput: nums = [3, 2, 4], target = 6\nOutput: [1, 2]",
+    "constraints": "2 <= nums.length <= 10,000\n-1,000,000,000 <= nums[i] <= 1,000,000,000\nExactly one valid answer exists.",
     "starter": "def solve(nums, target):\n    # Return the indices of the two matching values.\n    pass\n",
     "tests": "assert solve([2, 7, 11, 15], 9) == [0, 1]\nassert solve([3, 2, 4], 6) == [1, 2]\nprint('All tests passed.')"
   },
@@ -14,6 +17,9 @@
     "topic": "stacks",
     "difficulty": "easy",
     "prompt": "Determine whether every opening bracket is closed in the correct order.",
+    "description": "Given a string containing only parentheses, brackets, and braces, determine whether the input is valid. Every opening bracket must close with the same type in the correct order.",
+    "examples": "Input: s = \"()[]{}\"\nOutput: true\n\nInput: s = \"(]\"\nOutput: false",
+    "constraints": "1 <= s.length <= 10,000\ns consists only of (), [], and {}.",
     "starter": "def solve(s):\n    # Return True when all brackets are correctly matched.\n    pass\n",
     "tests": "assert solve('()[]{}') is True\nassert solve('(]') is False\nassert solve('{[]}') is True\nprint('All tests passed.')"
   }

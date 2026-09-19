@@ -12,6 +12,9 @@ class Challenge:
     topic: str
     difficulty: str
     prompt: str
+    description: str
+    examples: str
+    constraints: str
     starter: str
     tests: str
 
