@@ -20,3 +20,11 @@ def test_run_python_executes_local_tests() -> None:
     result = run_python("def solve(value):\n    return value * 2", test_source="assert solve(3) == 6")
 
     assert result.returncode == 0
+    assert "All 1 tests passed." in result.stdout
+
+
+def test_run_python_stops_on_first_failed_assertion() -> None:
+    result = run_python("def solve(value):\n    return value + 1", test_source="assert solve(1) == 2\nassert solve(2) == 5")
+
+    assert result.returncode != 0
+    assert "Test 2 failed" in result.stdout

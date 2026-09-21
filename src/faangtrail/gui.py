@@ -67,6 +67,7 @@ class PracticeApp(tk.Tk):
         super().__init__()
         self.title("FAANGTrail | Local Practice")
         self.geometry("1280x820")
+        self.state("zoomed")
         self.minsize(980, 640)
         self.configure(bg=COLORS["editor"])
 
@@ -74,8 +75,9 @@ class PracticeApp(tk.Tk):
         self.selected_challenge: Challenge | None = None
         self.result_queue: queue.Queue[RunResult] = queue.Queue()
         self.is_running = False
-        self.navigator_visible = True
-        self.sidebar_mode = "roadmap"
+        self.navigator_visible = False
+        self.sidebar_mode = "neetcode"
+        self.active_roadmap = "neetcode"
         self._status_animation_id: str | None = None
         self._navigator_animation_id: str | None = None
 
@@ -204,10 +206,12 @@ class PracticeApp(tk.Tk):
         activity.pack_propagate(False)
         self.home_button = tk.Button(activity, text="FT", command=self._go_home, bg=COLORS["blue"], fg=COLORS["activity"], activebackground=COLORS["blue_hover"], activeforeground=COLORS["activity"], relief="flat", bd=0, font=("Segoe UI", 10, "bold"), pady=8, cursor="hand2")
         self.home_button.pack(fill="x", pady=(12, 16))
-        self.road_button = tk.Button(activity, text="ROAD", command=self._show_roadmap, bg=COLORS["input"], fg=COLORS["bright"], activebackground=COLORS["selection"], activeforeground=COLORS["bright"], relief="flat", bd=0, font=("Segoe UI", 8, "bold"), pady=8, cursor="hand2")
-        self.road_button.pack(fill="x", pady=(0, 2))
-        self.code_button = tk.Button(activity, text="CODE", command=self._show_code_info, bg=COLORS["activity"], fg=COLORS["muted"], activebackground=COLORS["input"], activeforeground=COLORS["bright"], relief="flat", bd=0, font=("Segoe UI", 8, "bold"), pady=8, cursor="hand2")
-        self.code_button.pack(fill="x")
+        self.neetcode_button = tk.Button(activity, text="N150", command=lambda: self._show_roadmap("neetcode"), bg=COLORS["input"], fg=COLORS["bright"], activebackground=COLORS["selection"], activeforeground=COLORS["bright"], relief="flat", bd=0, font=("Segoe UI", 8, "bold"), pady=8, cursor="hand2")
+        self.neetcode_button.pack(fill="x", pady=(0, 2))
+        self.blind_button = tk.Button(activity, text="BLIND", command=lambda: self._show_roadmap("blind"), bg=COLORS["activity"], fg=COLORS["muted"], activebackground=COLORS["input"], activeforeground=COLORS["bright"], relief="flat", bd=0, font=("Segoe UI", 8, "bold"), pady=8, cursor="hand2")
+        self.blind_button.pack(fill="x", pady=(0, 2))
+        self.dsa_button = tk.Button(activity, text="DSA", command=lambda: self._show_roadmap("dsa"), bg=COLORS["activity"], fg=COLORS["muted"], activebackground=COLORS["input"], activeforeground=COLORS["bright"], relief="flat", bd=0, font=("Segoe UI", 8, "bold"), pady=8, cursor="hand2")
+        self.dsa_button.pack(fill="x")
         self.activity_toggle_button = tk.Button(activity, text="‹", command=self._toggle_navigator, bg=COLORS["activity"], fg=COLORS["muted"], activebackground=COLORS["input"], activeforeground=COLORS["bright"], relief="flat", bd=0, font=("Segoe UI", 16), cursor="hand2")
         self.activity_toggle_button.pack(side="bottom", fill="x", pady=10)
 
@@ -251,6 +255,12 @@ class PracticeApp(tk.Tk):
                 self.challenge_items.add(challenge_id)
                 self.challenge_list.insert(topic_id, "end", iid=challenge_id, text=challenge.title, values=(challenge.difficulty.title(),))
         self.challenge_list.bind("<<TreeviewSelect>>", self._on_challenge_selected)
+
+        self.navigator_visible = False
+        self.navigator.configure(width=0)
+        self.toggle_navigator_button.configure(text="›")
+        self.activity_toggle_button.configure(text="›")
+        self.navigator.pack_forget()
 
         self.content_panes = ttk.PanedWindow(body, orient="horizontal")
         self.content_panes.pack(side="left", fill="both", expand=True, padx=(12, 12), pady=(12, 12))
@@ -359,10 +369,19 @@ class PracticeApp(tk.Tk):
         normalized = re.sub(r"\.\s+(?=\S)", ".\n", normalized)
         return normalized + "\n"
 
-    def _show_roadmap(self) -> None:
-        self.sidebar_mode = "roadmap"
-        self.road_button.configure(bg=COLORS["input"], fg=COLORS["bright"])
-        self.code_button.configure(bg=COLORS["activity"], fg=COLORS["muted"])
+    def _show_roadmap(self, roadmap_name: str = "neetcode") -> None:
+        self.sidebar_mode = roadmap_name
+        self.active_roadmap = roadmap_name
+        button_map = {
+            "neetcode": self.neetcode_button,
+            "blind": self.blind_button,
+            "dsa": self.dsa_button,
+        }
+        for name, button in button_map.items():
+            if name == roadmap_name:
+                button.configure(bg=COLORS["input"], fg=COLORS["bright"])
+            else:
+                button.configure(bg=COLORS["activity"], fg=COLORS["muted"])
         self.challenge_list.pack(fill="both", expand=True, padx=8, pady=(0, 8))
 
     def _show_code_info(self) -> None:
@@ -513,8 +532,26 @@ class PracticeApp(tk.Tk):
         output = result.stdout
         if result.stderr:
             output += ("\n" if output else "") + result.stderr
-        self._set_output(output or "No output.")
-        self.status.configure(text="Passed" if result.returncode == 0 else "Failed")
+
+        summary_text, status_text, is_success = self._summarize_test_run(result, output)
+        self._set_output(summary_text if output else "No output.")
+        self.status.configure(text=status_text)
+        self.status.configure(foreground=COLORS["green"] if is_success else COLORS["coral"])
+        self.output.configure(fg=COLORS["green"] if is_success else COLORS["coral"])
+
+    def _summarize_test_run(self, result: RunResult, output: str) -> tuple[str, str, bool]:
+        text = (output or "").strip()
+        passed_match = re.search(r"All\s+(\d+)\s+tests\s+passed\.?", text, flags=re.IGNORECASE)
+        if passed_match:
+            return f"All {passed_match.group(1)} tests passed.\n\n{text}", f"Passed ({passed_match.group(1)})", True
+
+        failed_match = re.search(r"Test\s+(\d+)\s+failed", text, flags=re.IGNORECASE)
+        if failed_match:
+            return f"Failed on test {failed_match.group(1)}.\n\n{text}", f"Failed (test {failed_match.group(1)})", False
+
+        if result.returncode == 0:
+            return text or "No output.", "Passed", True
+        return text or "No output.", "Failed", False
 
     def _set_output(self, text: str) -> None:
         self.output.configure(state="normal")

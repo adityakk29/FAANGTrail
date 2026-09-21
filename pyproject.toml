@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "faangtrail"
-version = "0.1.0"
+version = "0.2.4"
 description = "A local-first programming practice app for the FAANGTrail roadmap"
 readme = "README.md"
 requires-python = ">=3.10"
