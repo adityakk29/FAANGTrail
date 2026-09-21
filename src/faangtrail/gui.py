@@ -75,12 +75,12 @@ class PracticeApp(tk.Tk):
         self.result_queue: queue.Queue[RunResult] = queue.Queue()
         self.is_running = False
         self.navigator_visible = True
+        self.sidebar_mode = "roadmap"
         self._status_animation_id: str | None = None
         self._navigator_animation_id: str | None = None
 
         self._configure_styles()
-        self._build_layout()
-        self._load_challenge(0)
+        self._build_landing_page()
 
     def _configure_styles(self) -> None:
         style = ttk.Style(self)
@@ -104,9 +104,86 @@ class PracticeApp(tk.Tk):
         style.map("Accent.TButton", background=[("active", COLORS["blue_hover"]), ("disabled", "#3c3c3c")])
         style.configure("Secondary.TButton", background=COLORS["input"], foreground=COLORS["text"], font=("Segoe UI", 9), padding=(9, 6), borderwidth=0)
         style.map("Secondary.TButton", background=[("active", "#4b4b4b")])
+        style.configure("Roadmap.Treeview", background=COLORS["code_background"], fieldbackground=COLORS["code_background"], foreground=COLORS["code_text"], font=("Segoe UI", 10), rowheight=36, borderwidth=0)
+        style.map("Roadmap.Treeview", background=[("selected", COLORS["selection"])], foreground=[("selected", COLORS["bright"])])
+        style.configure("Roadmap.Treeview.Heading", background=COLORS["sidebar"], foreground=COLORS["muted"], font=("Segoe UI", 8, "bold"), relief="flat", padding=(8, 8))
+        style.map("Roadmap.Treeview.Heading", background=[("active", COLORS["sidebar"])])
+        style.configure("Roadmap.Treeview", indent=18)
 
-    def _build_layout(self) -> None:
-        shell = ttk.Frame(self, style="App.TFrame")
+    def _build_landing_page(self) -> None:
+        self.landing = tk.Frame(self, bg=COLORS["activity"])
+        self.landing.pack(fill="both", expand=True)
+
+        tk.Frame(self.landing, bg=COLORS["blue"], height=6).pack(fill="x")
+        tk.Label(
+            self.landing,
+            text="LOCAL INTERVIEW PRACTICE",
+            bg=COLORS["activity"],
+            fg=COLORS["blue"],
+            font=("Segoe UI", 9, "bold"),
+        ).pack(pady=(72, 18))
+        tk.Label(
+            self.landing,
+            text="FAANGTrail",
+            bg=COLORS["activity"],
+            fg=COLORS["bright"],
+            font=("Segoe UI", 36, "bold"),
+        ).pack()
+        tk.Label(
+            self.landing,
+            text="Build the instincts that carry you through the interview.",
+            bg=COLORS["activity"],
+            fg=COLORS["muted"],
+            font=("Segoe UI", 12),
+        ).pack(pady=(10, 38))
+
+        choices = tk.Frame(self.landing, bg=COLORS["activity"])
+        choices.pack()
+        paths = (
+            ("01", "Neetcode 150", "The full coding interview roadmap", self._open_neetcode_150, COLORS["blue"]),
+            ("02", "Blind 75", "The essential high-signal problems", lambda: self._show_coming_soon("Blind 75"), COLORS["coral"]),
+            ("03", "System Design", "Learn to design scalable systems", lambda: self._show_coming_soon("System Design"), COLORS["orange"]),
+        )
+        for path in paths:
+            number, title, description, command, accent = path
+            card = tk.Frame(choices, bg=COLORS["panel"], width=430, height=72)
+            card.pack(pady=5)
+            card.pack_propagate(False)
+            tk.Frame(card, bg=accent, width=5).pack(side="left", fill="y")
+            tk.Label(card, text=number, bg=COLORS["panel"], fg=accent, font=("Cascadia Mono", 10, "bold"), width=5).pack(side="left", fill="y", pady=23)
+            copy = tk.Frame(card, bg=COLORS["panel"])
+            copy.pack(side="left", fill="both", expand=True, padx=(4, 0), pady=12)
+            tk.Label(copy, text=title, bg=COLORS["panel"], fg=COLORS["bright"], font=("Segoe UI", 12, "bold"), anchor="w").pack(fill="x")
+            tk.Label(copy, text=description, bg=COLORS["panel"], fg=COLORS["muted"], font=("Segoe UI", 9), anchor="w").pack(fill="x", pady=(3, 0))
+            button = tk.Button(card, text="OPEN  ›", command=command, bg=COLORS["panel"], fg=accent, activebackground=COLORS["panel"], activeforeground=COLORS["bright"], relief="flat", bd=0, font=("Segoe UI", 9, "bold"), cursor="hand2")
+            button.pack(side="right", padx=18)
+
+        tk.Label(
+            self.landing,
+            text=f"{len(self.challenges)} problems  /  LOCAL PYTHON 3.10+",
+            bg=COLORS["activity"],
+            fg=COLORS["muted"],
+            font=("Segoe UI", 8, "bold"),
+        ).pack(side="bottom", pady=24)
+
+    def _open_neetcode_150(self) -> None:
+        self.landing.destroy()
+        self._build_practice_layout()
+        self._load_challenge(0)
+
+    def _go_home(self) -> None:
+        if self.is_running:
+            return
+        self.practice_shell.destroy()
+        self.selected_challenge = None
+        self._build_landing_page()
+
+    def _show_coming_soon(self, path_name: str) -> None:
+        messagebox.showinfo("FAANGTrail", f"{path_name} is coming soon.")
+
+    def _build_practice_layout(self) -> None:
+        self.practice_shell = ttk.Frame(self, style="App.TFrame")
+        shell = self.practice_shell
         shell.pack(fill="both", expand=True)
 
         titlebar = ttk.Frame(shell, style="Titlebar.TFrame", height=42)
@@ -125,9 +202,12 @@ class PracticeApp(tk.Tk):
         activity = ttk.Frame(body, style="Activity.TFrame", width=52)
         activity.pack(side="left", fill="y")
         activity.pack_propagate(False)
-        tk.Label(activity, text="FT", bg=COLORS["blue"], fg=COLORS["activity"], font=("Segoe UI", 10, "bold"), pady=8).pack(fill="x", pady=(12, 16))
-        tk.Label(activity, text="ROAD", bg=COLORS["activity"], fg=COLORS["text"], font=("Segoe UI", 8, "bold"), pady=8).pack(fill="x")
-        tk.Label(activity, text="CODE", bg=COLORS["activity"], fg=COLORS["muted"], font=("Segoe UI", 8, "bold"), pady=8).pack(fill="x")
+        self.home_button = tk.Button(activity, text="FT", command=self._go_home, bg=COLORS["blue"], fg=COLORS["activity"], activebackground=COLORS["blue_hover"], activeforeground=COLORS["activity"], relief="flat", bd=0, font=("Segoe UI", 10, "bold"), pady=8, cursor="hand2")
+        self.home_button.pack(fill="x", pady=(12, 16))
+        self.road_button = tk.Button(activity, text="ROAD", command=self._show_roadmap, bg=COLORS["input"], fg=COLORS["bright"], activebackground=COLORS["selection"], activeforeground=COLORS["bright"], relief="flat", bd=0, font=("Segoe UI", 8, "bold"), pady=8, cursor="hand2")
+        self.road_button.pack(fill="x", pady=(0, 2))
+        self.code_button = tk.Button(activity, text="CODE", command=self._show_code_info, bg=COLORS["activity"], fg=COLORS["muted"], activebackground=COLORS["input"], activeforeground=COLORS["bright"], relief="flat", bd=0, font=("Segoe UI", 8, "bold"), pady=8, cursor="hand2")
+        self.code_button.pack(fill="x")
         self.activity_toggle_button = tk.Button(activity, text="‹", command=self._toggle_navigator, bg=COLORS["activity"], fg=COLORS["muted"], activebackground=COLORS["input"], activeforeground=COLORS["bright"], relief="flat", bd=0, font=("Segoe UI", 16), cursor="hand2")
         self.activity_toggle_button.pack(side="bottom", fill="x", pady=10)
 
@@ -145,22 +225,32 @@ class PracticeApp(tk.Tk):
         roadmap_header.pack(fill="x", padx=10, pady=(2, 8))
         ttk.Label(roadmap_header, text="ROADMAP", style="Section.TLabel").pack(side="left")
         ttk.Label(roadmap_header, text=f"{len(self.challenges)} problems", style="Muted.TLabel").pack(side="right")
-        self.challenge_list = tk.Listbox(
+        self.challenge_list = ttk.Treeview(
             navigator,
-            activestyle="none",
-            bg=COLORS["code_background"],
-            fg=COLORS["code_text"],
-            selectbackground=COLORS["selection"],
-            selectforeground=COLORS["bright"],
-            relief="flat",
-            highlightthickness=0,
-            font=("Cascadia Mono", 9),
-            exportselection=False,
+            style="Roadmap.Treeview",
+            columns=("difficulty",),
+            show="tree headings",
+            selectmode="browse",
         )
-        self.challenge_list.pack(fill="both", expand=True, padx=0)
-        for challenge in self.challenges:
-            self.challenge_list.insert("end", f"  {challenge.title}  ·  {challenge.difficulty}")
-        self.challenge_list.bind("<<ListboxSelect>>", self._on_challenge_selected)
+        self.challenge_list.heading("#0", text="PROBLEM", anchor="w")
+        self.challenge_list.heading("difficulty", text="LEVEL", anchor="w")
+        self.challenge_list.column("#0", width=190, minwidth=140, stretch=True)
+        self.challenge_list.column("difficulty", width=70, minwidth=60, stretch=False)
+        self.challenge_list.pack(fill="both", expand=True, padx=8, pady=(0, 8))
+        self.challenge_list.tag_configure("topic", foreground=COLORS["blue"], font=("Segoe UI", 9, "bold"))
+        self.challenge_items: set[str] = set()
+        topic_groups: dict[str, list[tuple[int, Challenge]]] = {}
+        for index, challenge in enumerate(self.challenges):
+            topic_key = challenge.topic.strip().casefold()
+            topic_groups.setdefault(topic_key, []).append((index, challenge))
+        for topic_index, (topic, challenges) in enumerate(topic_groups.items()):
+            topic_id = f"topic-{topic_index}"
+            self.challenge_list.insert("", "end", iid=topic_id, text=f"{topic.upper()}  ({len(challenges)})", tags=("topic",), open=True)
+            for index, challenge in challenges:
+                challenge_id = str(index)
+                self.challenge_items.add(challenge_id)
+                self.challenge_list.insert(topic_id, "end", iid=challenge_id, text=challenge.title, values=(challenge.difficulty.title(),))
+        self.challenge_list.bind("<<TreeviewSelect>>", self._on_challenge_selected)
 
         self.content_panes = ttk.PanedWindow(body, orient="horizontal")
         self.content_panes.pack(side="left", fill="both", expand=True, padx=(12, 12), pady=(12, 12))
@@ -228,15 +318,18 @@ class PracticeApp(tk.Tk):
         tk.Label(statusbar, text="Python 3  |  LOCAL INTERPRETER  |  UTF-8  ", bg=COLORS["activity"], fg=COLORS["muted"], font=("Segoe UI", 8)).pack(side="right")
 
     def _on_challenge_selected(self, _event: tk.Event) -> None:
-        selection = self.challenge_list.curselection()
-        if selection:
-            self._load_challenge(selection[0])
+        selection = self.challenge_list.selection()
+        if selection and selection[0] in self.challenge_items:
+            index = int(selection[0])
+            if self.selected_challenge is not self.challenges[index]:
+                self._load_challenge(index)
 
     def _load_challenge(self, index: int) -> None:
         self.selected_challenge = self.challenges[index]
-        self.challenge_list.selection_clear(0, "end")
-        self.challenge_list.selection_set(index)
-        self.challenge_list.see(index)
+        challenge_id = str(index)
+        self.challenge_list.selection_set(challenge_id)
+        self.challenge_list.focus(challenge_id)
+        self.challenge_list.see(challenge_id)
         challenge = self.selected_challenge
         self.challenge_title.configure(text=challenge.title)
         self.challenge_meta.configure(text=f"{challenge.topic.upper()}  /  {challenge.difficulty.upper()}")
@@ -265,6 +358,15 @@ class PracticeApp(tk.Tk):
         normalized = re.sub(r"\s*\n\s*", "\n", constraints.strip())
         normalized = re.sub(r"\.\s+(?=\S)", ".\n", normalized)
         return normalized + "\n"
+
+    def _show_roadmap(self) -> None:
+        self.sidebar_mode = "roadmap"
+        self.road_button.configure(bg=COLORS["input"], fg=COLORS["bright"])
+        self.code_button.configure(bg=COLORS["activity"], fg=COLORS["muted"])
+        self.challenge_list.pack(fill="both", expand=True, padx=8, pady=(0, 8))
+
+    def _show_code_info(self) -> None:
+        messagebox.showinfo("Code workspace", "Select a problem from the Roadmap to open its coding workspace.")
 
     def _toggle_navigator(self) -> None:
         if self._navigator_animation_id is not None:
