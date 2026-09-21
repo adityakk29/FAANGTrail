@@ -5,6 +5,8 @@ import re
 from dataclasses import dataclass
 from importlib.resources import files
 
+from .testcase_bundle import testcase_path
+
 
 @dataclass(frozen=True)
 class Challenge:
@@ -36,6 +38,7 @@ def load_challenges() -> list[Challenge]:
             if challenge_id in known_ids:
                 continue
             title = problem["name"]
+            downloaded_tests = _load_downloaded_tests(challenge_id)
             challenges.append(
                 Challenge(
                     id=challenge_id,
@@ -47,7 +50,7 @@ def load_challenges() -> list[Challenge]:
                     examples=_format_examples(problem.get("examples", [])),
                     constraints=problem.get("constraints", ""),
                     starter=problem.get("python_template", f"# {title}\n\n"),
-                    tests=(
+                    tests=downloaded_tests or (
                         "print('Tests for this imported problem are not bundled yet. "
                         "Use the examples to validate your solution.')"
                     ),
@@ -56,6 +59,32 @@ def load_challenges() -> list[Challenge]:
             known_ids.add(challenge_id)
 
     return challenges
+
+
+def _load_downloaded_tests(problem_id: str) -> str | None:
+    path = testcase_path(problem_id)
+    if path is None:
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    test_source = payload.get("test_source") if isinstance(payload, dict) else None
+    if isinstance(test_source, str) and test_source.strip():
+        return test_source
+    if not isinstance(payload, dict) or payload.get("pattern") != "function":
+        return None
+    function_name = payload.get("function")
+    cases = payload.get("cases")
+    if not isinstance(function_name, str) or not re.fullmatch(r"[A-Za-z_]\w*", function_name) or not isinstance(cases, list):
+        return None
+    assertions = []
+    for case in cases:
+        if not isinstance(case, dict) or not isinstance(case.get("input"), list) or "expected" not in case:
+            return None
+        arguments = ", ".join(repr(value) for value in case["input"])
+        assertions.append(f"assert {function_name}({arguments}) == {case['expected']!r}")
+    return "\n".join(assertions) + "\nprint('All tests passed.')" if assertions else None
 
 
 def _format_examples(examples: list[dict]) -> str:

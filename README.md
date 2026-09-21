@@ -14,6 +14,7 @@ python -m pip install -e '.[dev]'
 faangtrail-gui
 faangtrail list
 faangtrail run two-sum --code "print('skeleton ready')"
+faangtrail fetch-testcases
 python -m pytest
 ```
 
