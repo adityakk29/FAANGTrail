@@ -17,7 +17,7 @@ faangtrail run two-sum --code "print('skeleton ready')"
 python -m pytest
 ```
 
-The GUI lets you select a roadmap challenge, edit its starter function, and click **Run tests**. Each challenge runs its bundled assertions in the local Python interpreter and displays stdout, tracebacks, pass/fail status, and timeouts. The GUI and CLI never send source code to a remote service. Challenge metadata and tests are kept in `src/faangtrail/data/roadmap.json`. The desktop app uses Tkinter from the Python standard library, so no web server or account is required.
+The GUI lets you select a roadmap challenge, edit its starter function, and click **Run tests**. Each challenge runs its bundled assertions in the local Python interpreter and displays stdout, tracebacks, pass/fail status, and timeouts. The GUI and CLI never send source code to a remote service. Challenge metadata and tests are kept in `src/faangtrail/data/roadmap.json`. The full problem catalog is stored in `src/faangtrail/data/problems/`, including descriptions, examples, constraints, and language templates. The desktop app uses Tkinter from the Python standard library, so no web server or account is required.
 
 ## Packaging
 
