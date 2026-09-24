@@ -23,8 +23,27 @@ def test_run_python_executes_local_tests() -> None:
     assert "All 1 tests passed." in result.stdout
 
 
+def test_run_python_reports_test_progress() -> None:
+    progress = []
+    result = run_python(
+        "def solve(value):\n    return value",
+        test_source="assert solve(1) == 1\nassert solve(2) == 2",
+        progress_callback=lambda current, total: progress.append((current, total)),
+    )
+
+    assert result.returncode == 0
+    assert progress == [(1, 2), (2, 2)]
+
+
 def test_run_python_stops_on_first_failed_assertion() -> None:
     result = run_python("def solve(value):\n    return value + 1", test_source="assert solve(1) == 2\nassert solve(2) == 5")
 
     assert result.returncode != 0
     assert "Test 2 failed" in result.stdout
+
+
+def test_run_python_accepts_large_test_programs() -> None:
+    result = run_python("print('large program works')", test_source="#" + ("x" * 300_000))
+
+    assert result.returncode == 0
+    assert result.stdout == "large program works\n"
