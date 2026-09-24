@@ -10,7 +10,7 @@ Requires Python 3.10 or newer.
 python -m venv .venv
 # Windows PowerShell: .venv\\Scripts\\Activate.ps1
 # macOS/Linux: source .venv/bin/activate
-python -m pip install -e '.[dev]'
+python -m pip install -e '.[dev,ai]'
 faangtrail-gui
 faangtrail list
 faangtrail run two-sum --code "print('skeleton ready')"
@@ -18,7 +18,7 @@ faangtrail fetch-testcases
 python -m pytest
 ```
 
-The GUI lets you select a roadmap challenge, edit its starter function, and click **Run tests**. Each challenge runs its bundled assertions in the local Python interpreter and displays stdout, tracebacks, pass/fail status, and timeouts. The GUI and CLI never send source code to a remote service. Challenge metadata and tests are kept in `src/faangtrail/data/roadmap.json`. The full problem catalog is stored in `src/faangtrail/data/problems/`, including descriptions, examples, constraints, and language templates. The desktop app uses Tkinter from the Python standard library, so no web server or account is required.
+The GUI lets you select a roadmap challenge, edit its starter function, and click **Run tests**. Each challenge runs its bundled assertions in the local Python interpreter and displays stdout, tracebacks, pass/fail status, and timeouts. You can optionally configure an OpenAI API key through the **API key** button and request only the time and space complexity of the current solution. The key is stored in the system credential manager and code is sent to OpenAI only when you explicitly request analysis. Challenge metadata and tests are kept in `src/faangtrail/data/roadmap.json`. The full problem catalog is stored in `src/faangtrail/data/problems/`, including descriptions, examples, constraints, and language templates. The desktop app uses Tkinter from the Python standard library, so no web server or account is required.
 
 ## Packaging
 

@@ -51,6 +51,18 @@ def test_bundle_download_installs_and_converts_function_cases(tmp_path, monkeypa
     assert "assert solve([2, 7], 9) == [0, 1]" in tests
 
 
+def test_downloaded_tests_override_existing_roadmap_entry(tmp_path, monkeypatch) -> None:
+    manifest_path = _write_release(tmp_path)
+    bundle_dir = tmp_path / "installed"
+    monkeypatch.setattr(testcase_bundle, "BUNDLE_DIR", bundle_dir)
+    monkeypatch.setattr(testcase_bundle, "BUNDLE_META", bundle_dir / ".bundle.json")
+
+    testcase_bundle.fetch_testcase_bundle(manifest_path.as_uri())
+
+    challenge = next(item for item in roadmap.load_challenges() if item.id == "two-sum")
+    assert "assert solve([2, 7], 9) == [0, 1]" in challenge.tests
+
+
 def test_bundle_rejects_unlisted_archive_member(tmp_path) -> None:
     manifest_path = _write_release(tmp_path)
     rogue = tmp_path / "rogue"
