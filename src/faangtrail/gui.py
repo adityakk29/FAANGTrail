@@ -13,6 +13,7 @@ import token
 from tkinter import messagebox, ttk
 from tkinter.scrolledtext import ScrolledText
 
+from .complexity import ComplexityError, analyze_complexity, delete_api_key, get_api_key, save_api_key
 from .roadmap import Challenge, load_challenges
 from .runner import RunResult, run_python
 
@@ -73,8 +74,10 @@ class PracticeApp(tk.Tk):
 
         self.challenges = load_challenges()
         self.selected_challenge: Challenge | None = None
-        self.result_queue: queue.Queue[RunResult] = queue.Queue()
+        self.result_queue: queue.Queue[object] = queue.Queue()
+        self.complexity_queue: queue.Queue[object] = queue.Queue()
         self.is_running = False
+        self.is_analyzing = False
         self.navigator_visible = False
         self.sidebar_mode = "neetcode"
         self.active_roadmap = "neetcode"
@@ -193,6 +196,7 @@ class PracticeApp(tk.Tk):
         titlebar.pack_propagate(False)
         ttk.Label(titlebar, text="FAANGTrail", style="Brand.TLabel").pack(side="left", padx=16)
         ttk.Label(titlebar, text="  /  LOCAL PRACTICE", style="Title.TLabel").pack(side="left")
+        ttk.Button(titlebar, text="API key", style="Secondary.TButton", command=self._open_api_key_dialog).pack(side="right", padx=(0, 8))
         ttk.Label(titlebar, text="PYTHON 3.10+", style="Title.TLabel").pack(side="right", padx=16)
         self.motion_bar = tk.Frame(shell, bg=COLORS["blue"], height=2)
         self.motion_bar.pack(fill="x")
@@ -297,6 +301,8 @@ class PracticeApp(tk.Tk):
         self.challenge_meta.pack(side="left", padx=(12, 0))
         self.run_button = ttk.Button(editor_header, text="Run tests", style="Accent.TButton", command=self._run_submission)
         self.run_button.pack(side="right")
+        self.complexity_button = ttk.Button(editor_header, text="Analyze complexity", style="Secondary.TButton", command=self._analyze_complexity)
+        self.complexity_button.pack(side="right", padx=(0, 8))
         self.reset_button = ttk.Button(editor_header, text="Reset", style="Secondary.TButton", command=self._reset_code)
         self.reset_button.pack(side="right", padx=(0, 8))
 
@@ -314,6 +320,8 @@ class PracticeApp(tk.Tk):
         output_header = ttk.Frame(workspace, style="Editor.TFrame", padding=(14, 0, 14, 0))
         output_header.pack(fill="x")
         ttk.Label(output_header, text="TEST RESULTS", style="EditorLabel.TLabel").pack(side="left")
+        self.test_progress = ttk.Progressbar(output_header, mode="determinate", length=140, maximum=1, value=0)
+        self.test_progress.pack(side="right", padx=(12, 0))
         self.status = ttk.Label(output_header, text="Ready", style="EditorLabel.TLabel")
         self.status.pack(side="right")
         output_panel = tk.Frame(panes, bg=COLORS["code_background"], bd=0, highlightbackground=COLORS["border"], highlightthickness=1)
@@ -503,27 +511,123 @@ class PracticeApp(tk.Tk):
         return None
 
     def _run_submission(self) -> None:
-        if self.is_running:
+        if self.is_running or self.is_analyzing:
             return
         source = self.editor.get("1.0", "end-1c")
         self.is_running = True
         self.run_button.configure(state="disabled", text="Running...")
         self.status.configure(text="Running locally...")
+        self.test_progress.configure(maximum=1, value=0)
         self._animate_status()
         self._set_output("")
         threading.Thread(target=self._run_in_background, args=(source, self.selected_challenge.tests), daemon=True).start()
         self.after(100, self._poll_result)
 
+    def _analyze_complexity(self) -> None:
+        if self.is_running or self.is_analyzing:
+            return
+        if not get_api_key():
+            self._open_api_key_dialog()
+            if not get_api_key():
+                return
+        source = self.editor.get("1.0", "end-1c")
+        challenge = self.selected_challenge
+        if challenge is None:
+            return
+        self.is_analyzing = True
+        self.complexity_button.configure(state="disabled", text="Analyzing...")
+        self.status.configure(text="Analyzing complexity...")
+        threading.Thread(
+            target=self._analyze_in_background,
+            args=(source, f"{challenge.title}\n{challenge.description}"),
+            daemon=True,
+        ).start()
+        self.after(100, self._poll_complexity)
+
+    def _analyze_in_background(self, source: str, problem: str) -> None:
+        try:
+            result = analyze_complexity(source, problem)
+            self.complexity_queue.put(result)
+        except ComplexityError as error:
+            self.complexity_queue.put(error)
+
+    def _poll_complexity(self) -> None:
+        try:
+            result = self.complexity_queue.get_nowait()
+        except queue.Empty:
+            self.after(100, self._poll_complexity)
+            return
+        self.is_analyzing = False
+        self.complexity_button.configure(state="normal", text="Analyze complexity")
+        if isinstance(result, ComplexityError):
+            self.status.configure(text="Complexity analysis failed", foreground=COLORS["coral"])
+            messagebox.showerror("Complexity analysis", str(result))
+            return
+        self.status.configure(text="Complexity ready", foreground=COLORS["green"])
+        self._set_output(
+            f"COMPLEXITY\n\nTIME   {result.time}\nSPACE  {result.space}\n"
+        )
+        self.output.configure(fg=COLORS["blue"])
+
+    def _open_api_key_dialog(self) -> None:
+        dialog = tk.Toplevel(self)
+        dialog.title("OpenAI API key")
+        dialog.configure(bg=COLORS["panel"])
+        dialog.resizable(False, False)
+        dialog.transient(self)
+        dialog.grab_set()
+        tk.Label(dialog, text="OPENAI API KEY", bg=COLORS["panel"], fg=COLORS["bright"], font=("Segoe UI", 11, "bold")).pack(anchor="w", padx=20, pady=(18, 6))
+        tk.Label(dialog, text="Stored in your system credential manager.", bg=COLORS["panel"], fg=COLORS["muted"], font=("Segoe UI", 9)).pack(anchor="w", padx=20)
+        entry = tk.Entry(dialog, width=48, show="*", bg=COLORS["input"], fg=COLORS["bright"], insertbackground=COLORS["bright"], relief="flat")
+        entry.pack(padx=20, pady=(12, 16), ipady=7)
+        if get_api_key():
+            entry.insert(0, "Stored key")
+
+        actions = tk.Frame(dialog, bg=COLORS["panel"])
+        actions.pack(fill="x", padx=20, pady=(0, 18))
+
+        def save() -> None:
+            value = entry.get()
+            if value == "Stored key":
+                dialog.destroy()
+                return
+            try:
+                save_api_key(value)
+            except (ComplexityError, ValueError) as error:
+                messagebox.showerror("API key", str(error), parent=dialog)
+                return
+            dialog.destroy()
+
+        def remove() -> None:
+            delete_api_key()
+            dialog.destroy()
+
+        tk.Button(actions, text="Remove", command=remove, bg=COLORS["input"], fg=COLORS["coral"], relief="flat", bd=0, padx=12, pady=6).pack(side="left")
+        tk.Button(actions, text="Save", command=save, bg=COLORS["blue"], fg=COLORS["activity"], relief="flat", bd=0, padx=16, pady=6).pack(side="right")
+        entry.focus_set()
+
     def _run_in_background(self, source: str, tests: str) -> None:
-        self.result_queue.put(run_python(source, test_source=tests))
+        self.result_queue.put(
+            run_python(
+                source,
+                test_source=tests,
+                progress_callback=lambda current, total: self.result_queue.put(("progress", current, total)),
+            )
+        )
 
     def _poll_result(self) -> None:
         try:
-            result = self.result_queue.get_nowait()
+            event = self.result_queue.get_nowait()
         except queue.Empty:
             self.after(100, self._poll_result)
             return
-        self._finish_run(result)
+        if isinstance(event, tuple) and event[0] == "progress":
+            _, current, total = event
+            self.test_progress.configure(maximum=total, value=current)
+            self.status.configure(text=f"Checking test case {current} / {total}...")
+            self.after(50, self._poll_result)
+            return
+        self._finish_run(event)
 
     def _finish_run(self, result: RunResult) -> None:
         self.is_running = False
@@ -543,7 +647,9 @@ class PracticeApp(tk.Tk):
         text = (output or "").strip()
         passed_match = re.search(r"All\s+(\d+)\s+tests\s+passed\.?", text, flags=re.IGNORECASE)
         if passed_match:
-            return f"All {passed_match.group(1)} tests passed.\n\n{text}", f"Passed ({passed_match.group(1)})", True
+            count = passed_match.group(1)
+            details = re.sub(r"All\s+\d+\s+tests\s+passed\.?", "", text, flags=re.IGNORECASE).strip()
+            return f"PASSED  |  {count} / {count} test cases\n\n{details}".rstrip(), f"Passed | {count}/{count}", True
 
         failed_match = re.search(r"Test\s+(\d+)\s+failed", text, flags=re.IGNORECASE)
         if failed_match:
